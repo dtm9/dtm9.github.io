@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Dylan's Game of Death</title>
+  <link href="./styles.css" rel=stylesheet>
+</head>
+<body>
+  <div id="buttonDiv">
+    <button id="start/pause" class="toggle" onclick="startPauseClicked()">START</button>
+    <button id="step" class="step" onclick="stepButtonClicked()">STEP</button><br />
+    <textarea id="savename" placeholder="Save data name"></textarea><button id="save" onclick="saveClicked()">SAVE</button><label id="saveError"></label><br />
+    <textarea id="loadname" placeholder="Load data name"></textarea><button id="load" onclick="loadClicked()">LOAD</button><label id="loadError"></label>
+  </div>
+  <div id="gameArea">
+    <canvas id="gameWorldAnnihilation" class="life-game"></canvas>
+    <br /><br /><br />
+  </div>
+  <div>
+    <br /><h2>Dylan's Game of Death Rules:</h2>
+    <h3><ul>
+      <li>There are two species in competition - Green and Red</li>
+      <li>If one species member has neighbors of the other species in any of the 8 directions a fight to the death will happen</li>
+      <li>Fight outcome is determined by the number of friendly and hostile neighbors<ul><li>Random number between 0 and 1 checked for less than or equal to allies/foes for the adjacent squares</li><li>The number of allied cells determins how many foe cells die in the event of victory</li></ul></li>
+      <li>Conway's rules apply to each species independently. They will still grow and die the same on their own before any fight is performed each step.</li>
+    </ul></h3>
+    <h2>Conway's Game of Life Rules:</h2>
+    <h3><ul>
+      <li>Underpopulation: Any live cell with fewer than two live neighbors dies.</li>
+      <li>Overpopulation: Any live cell with more than three live neighbors dies.</li>
+      <li>Stability: Any live cell with two or three live neibors lives, unchanged, to the next generation.</li>
+      <li>Growth: Any dead cell with exactly three live neighbors will come to life.</li>
+    </ul></h3>
+    <h2>Known Bugs:</h2>
+    <h3><ul>
+      <li>When the board is large (it's a different size every refresh) some stable formations form that should trigger a fight that results in SOME death. Yet they don't all the time.</li>
+      <li>There are two different fighting rules in my code but this page only shows one. If you want to see it, edit launcher.js change "attrition" to "annihilation".<ul><li>In annihilation ruleset losing foes all die every time, think nuclear weapons whereas the default Attrition is more like trench warfare or more ancient styles with fewer actual deaths.</li><li>Not showing both on the page because they suprisingly are not very different when you watch them play out.</li></ul></li>
+    </ul></h3>
+  </div>
+  <!--<script src"http://24.16.255.56:8888/socket.io/socket.io.js"></script>-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+  <script type="text/javascript" src="game.js"></script>
+  <script type="text/javascript" src="launcher.js"></script>
+  <script type="text/javascript" charset="utf-8">
+  var socket = io.connect("http://24.16.255.56:8888");
+
+  socket.on("connect", function() {
+    console.log("Socket connected.");
+  });
+  socket.on("disconnect", function() {
+    console.log("Socket disconnected.")
+  });
+  socket.on("reconnect", function() {
+    console.log("Socket reconnected.")
+  });
+
+  function saveClicked() {
+    console.log("save button clicked");
+    //collect the goods
+    console.log(document.getElementById("savename").value);
+    if (document.getElementById("savename").value.trim() == '') {
+      document.getElementById("saveError").innerHTML = "Save state field can't be blank!";
+    } else {
+      document.getElementById("saveError").innerHTML = "";
+
+      var savename = document.getElementById("savename").value;
+      var nodes = game.getCurrentGenCells();
+      var rules = game.getRules();
+      var savedata = new Object();
+      savedata.nodes = nodes;
+      savedata.rules = rules;
+      savedata.studentname = "Dylan Miller";
+      savedata.statename = savename;
+
+      socket.emit("save", savedata);
+    }
+  };
+
+  function loadClicked() {
+    console.log("load button clicked");
+
+    if (document.getElementById("loadname").value.trim() == '') {
+      document.getElementById("loadError").innerHTML = "Load state field can't be blank!";
+    } else {
+      var loadname = document.getElementById("loadname").value;
+      var loaddata = new Object();
+      loaddata.studentname = "Dylan Miller";
+      loaddata.statename = loadname;
+
+      socket.emit("load", loaddata);
+
+      socket.on("load", function(data) {
+        game.loadSavedGame(data);
+      });
+    }
+  };
+  </script>
+</body>
+</html>
